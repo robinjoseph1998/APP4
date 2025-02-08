@@ -6,10 +6,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetUpRoutes(router *gin.Engine, ctrl *api.AuthHandlers) {
-	router.POST("create/user", ctrl.AddUser)
+func SetUpRoutes(router *gin.Engine, ctrlInstagram *api.OauthInstagramHandlers, ctrlTwitter *api.OauthTwitterHandlers) {
+	router.POST("create/user", ctrlInstagram.AddUser)
 
-	router.GET("instagram/login", ctrl.OauthInstagramLogin)
-	router.GET("instagram/callback", ctrl.OauthInstagramCallback)
-	router.GET("instagram/profile", ctrl.FetchInstagramProfile)
+	router.GET("instagram/login", ctrlInstagram.OauthInstagramLogin)
+	router.GET("instagram/callback", ctrlInstagram.OauthInstagramCallback)
+	router.GET("instagram/profile", ctrlInstagram.FetchInstagramProfile)
+
+	router.GET("twitter/login", ctrlTwitter.OAuthTwitterLogin)
+	router.GET("twitter/callback", ctrlTwitter.OAuthTwitterCallback)
+
+	router.POST("/tweet", ctrlTwitter.PostTweet)
+
 }

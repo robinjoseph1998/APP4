@@ -34,8 +34,9 @@ func main() {
 	repo := repository.NewRepository(db)
 
 	router := gin.Default()
-	authCtrl := api.NewAuthHandlers(repo)
-	routes.SetUpRoutes(router, authCtrl)
+	OauthInstagramCtrl := api.NewOAuthInstagramHandlers(repo)
+	OauthTwitterCtrl := api.NewOAuthTwitterHandlers(repo)
+	routes.SetUpRoutes(router, OauthInstagramCtrl, OauthTwitterCtrl)
 
 	router.Run(":8000")
 
