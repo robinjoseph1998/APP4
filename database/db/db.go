@@ -10,7 +10,7 @@ import (
 var DB *gorm.DB
 
 func ConnectDB() (*gorm.DB, error) {
-	dsn := "host=localhost user=postgres password=123456 dbname=app3 port=5432 sslmode=disable TimeZone=Asia/Kolkata"
+	dsn := "host=localhost user=postgres password=123456 dbname=app4 port=5432 sslmode=disable TimeZone=Asia/Kolkata"
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -19,7 +19,9 @@ func ConnectDB() (*gorm.DB, error) {
 	DB = db
 
 	err = DB.AutoMigrate(
-		&models.User{})
+		&models.User{},
+		&models.InstagramToken{},
+	)
 	if err != nil {
 		return nil, err
 	}
