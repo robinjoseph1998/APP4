@@ -23,20 +23,6 @@ func NewOAuthInstagramHandlers(repo repository.RepoInterfaces) *OauthInstagramHa
 		Repo: repo}
 }
 
-func (ctrl *OauthInstagramHandlers) AddUser(c *gin.Context) {
-	var request models.User
-	if err := c.ShouldBindBodyWithJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := ctrl.Repo.CreateUser(request); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "user created successully"})
-}
-
 func (ctrl *OauthInstagramHandlers) OauthInstagramLogin(c *gin.Context) {
 	clientID := os.Getenv("INSTAGRAM_CLIENT_ID")
 	redirectURI := os.Getenv("INSTAGRAM_REDIRECT_URI")

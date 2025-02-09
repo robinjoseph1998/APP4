@@ -6,7 +6,6 @@ import (
 	"APP4/database/db"
 	"APP4/routes"
 	"log"
-	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -19,12 +18,6 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Now environment variables will be available
-	clientID := os.Getenv("INSTAGRAM_CLIENT_ID")
-	if clientID == "" {
-		log.Fatal("INSTAGRAM_CLIENT_ID is not set")
-	}
-
 	db, err := db.ConnectDB()
 	if err != nil {
 		log.Fatalf("Error in database: %v", err.Error())
@@ -34,9 +27,12 @@ func main() {
 	repo := repository.NewRepository(db)
 
 	router := gin.Default()
+
 	OauthInstagramCtrl := api.NewOAuthInstagramHandlers(repo)
 	OauthTwitterCtrl := api.NewOAuthTwitterHandlers(repo)
-	routes.SetUpRoutes(router, OauthInstagramCtrl, OauthTwitterCtrl)
+	authCommonCtrl := api.NewCommonAuthHandlers(repo)
+
+	routes.SetUpRoutes(router, OauthInstagramCtrl, OauthTwitterCtrl, authCommonCtrl)
 
 	router.Run(":8000")
 

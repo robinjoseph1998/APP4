@@ -23,6 +23,11 @@ type TwitterTokenResponse struct {
 	Scope        string `json:"scope"`
 }
 
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 func GenerateCodeVerifier() string {
 	b := make([]byte, 32)
 	_, _ = rand.Read(b)

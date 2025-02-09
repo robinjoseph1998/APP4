@@ -8,4 +8,5 @@ type RepoInterfaces interface {
 	FetchAccessTokenFromDB(userID uint) (string, error)
 
 	SaveTwitterToken(accessToken string, refreshToken string, expiresIn int) error
+	GetUserByEmail(loginRequest models.LoginRequest) (*models.User, error)
 }

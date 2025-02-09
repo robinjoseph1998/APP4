@@ -26,7 +26,8 @@ func NewOAuthTwitterHandlers(repo repository.RepoInterfaces) *OauthTwitterHandle
 }
 
 var (
-	CodeVerifier = models.GenerateCodeVerifier()
+	CodeVerifier  = models.GenerateCodeVerifier()
+	contextUserID = 0
 )
 
 func (x *OauthTwitterHandlers) OAuthTwitterLogin(c *gin.Context) {
@@ -103,22 +104,18 @@ func (x *OauthTwitterHandlers) OAuthTwitterCallback(c *gin.Context) {
 }
 
 func (x *OauthTwitterHandlers) PostTweet(c *gin.Context) {
-
-	userId, err := models.GetUserIDFromContext(c)
-	if err != nil || userId == 0 {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "can't fetch the userId from the context"})
-		return
-	}
-	AccessToken, err := x.Repo.FetchAccessTokenFromDB(uint(userId))
-	if err != nil || AccessToken == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "access token not found"})
-		return
-	}
 	var requestBody struct {
 		TweetText string `json:"tweet_text"`
 	}
+
 	if err := c.ShouldBindJSON(&requestBody); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+	fmt.Println("Twitter User Id From Twitter Handler: ", contextUserID)
+	AccessToken, err := x.Repo.FetchAccessTokenFromDB(uint(contextUserID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "can't fetch access token"})
 		return
 	}
 	// Step 2: Prepare the Twitter API request
