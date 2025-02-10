@@ -6,17 +6,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetUpRoutes(router *gin.Engine, ctrlInstagram *api.OauthInstagramHandlers, ctrlTwitter *api.OauthTwitterHandlers, authCommonCtrl *api.CommonAuthHandlers) {
-	router.POST("app/signup", authCommonCtrl.AppSignup)
-	router.POST("app/login", authCommonCtrl.AppLogin)
+func SetUpRoutes(router *gin.Engine, ctrlInstagram *api.OauthInstagramHandlers, ctrlTwitter *api.OauthTwitterHandlers, ctrlCommon *api.CommonAuthHandlers) {
+	router.POST("/app/signup", ctrlCommon.AppSignup)
+	router.POST("/app/login", ctrlCommon.AppLogin)
 
-	router.GET("instagram/login", ctrlInstagram.OauthInstagramLogin)
-	router.GET("instagram/callback", ctrlInstagram.OauthInstagramCallback)
-	router.GET("instagram/profile", ctrlInstagram.FetchInstagramProfile)
+	router.GET("/show/accounts", ctrlCommon.ShowConnectedAccounts)
 
-	router.GET("twitter/login", ctrlTwitter.OAuthTwitterLogin)
-	router.GET("twitter/callback", ctrlTwitter.OAuthTwitterCallback)
+	router.GET("/instagram/login", ctrlInstagram.OauthInstagramLogin)
+	router.GET("/instagram/callback", ctrlInstagram.OauthInstagramCallback)
+	router.GET("/instagram/profile", ctrlInstagram.FetchInstagramProfile)
 
-	router.POST("/tweet", ctrlTwitter.PostTweet)
+	router.GET("/twitter/login", ctrlTwitter.OAuthTwitterLogin)
+	router.GET("/twitter/callback", ctrlTwitter.OAuthTwitterCallback)
+
+	router.POST("/twitter/post/tweet", ctrlTwitter.PostTweet)
+	router.POST("/twitter/publish/video", ctrlTwitter.PostTweetWithVideo)
+	router.POST("/remove/account", ctrlCommon.RemoveAccounts)
 
 }

@@ -20,8 +20,8 @@ func ConnectDB() (*gorm.DB, error) {
 
 	err = DB.AutoMigrate(
 		&models.User{},
-		&models.InstagramAccessToken{},
-		&models.TwitterAccessToken{},
+		&models.ConnectedAccounts{},
+		// &models.TwitterAccessToken{},
 	)
 	if err != nil {
 		return nil, err

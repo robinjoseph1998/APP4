@@ -15,12 +15,11 @@ type ProfileResponse struct {
 	MediaCount  int    `json:"media_count"`
 }
 
-type TwitterTokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-	RefreshToken string `json:"refresh_token"`
-	Scope        string `json:"scope"`
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
+	AccountName string `json:"account_name"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   int    `json:"expires_in"`
 }
 
 type LoginRequest struct {

@@ -3,6 +3,7 @@ package main
 import (
 	api "APP4/api/handlers"
 	"APP4/api/repository"
+	services "APP4/api/services/twitter"
 	"APP4/database/db"
 	"APP4/routes"
 	"log"
@@ -15,7 +16,8 @@ func main() {
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatalf("Error loading .env file: %v", err.Error())
+		return
 	}
 
 	db, err := db.ConnectDB()
@@ -24,12 +26,13 @@ func main() {
 		return
 	}
 
+	router := gin.Default()
 	repo := repository.NewRepository(db)
 
-	router := gin.Default()
+	twitterServices := services.NewTwitterServices(repo)
+	OauthTwitterCtrl := api.NewOAuthTwitterHandlers(repo, twitterServices)
 
 	OauthInstagramCtrl := api.NewOAuthInstagramHandlers(repo)
-	OauthTwitterCtrl := api.NewOAuthTwitterHandlers(repo)
 	authCommonCtrl := api.NewCommonAuthHandlers(repo)
 
 	routes.SetUpRoutes(router, OauthInstagramCtrl, OauthTwitterCtrl, authCommonCtrl)

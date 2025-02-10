@@ -5,6 +5,7 @@ import (
 	"APP4/database/models"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,6 +17,17 @@ type CommonAuthHandlers struct {
 func NewCommonAuthHandlers(repo repository.RepoInterfaces) *CommonAuthHandlers {
 	return &CommonAuthHandlers{
 		Repo: repo}
+}
+
+func ErrorResponse(c *gin.Context, statusCode int, message string, err error) {
+	errorResponse := gin.H{
+		"error":   true,
+		"message": message,
+	}
+	if err != nil {
+		errorResponse["details"] = err.Error()
+	}
+	c.JSON(statusCode, errorResponse)
 }
 
 func (ctrl *CommonAuthHandlers) AppSignup(c *gin.Context) {
@@ -68,4 +80,27 @@ func (ctrl *CommonAuthHandlers) AppLogin(c *gin.Context) {
 			"message": "Logged in successfully",
 		})
 	}
+}
+
+func (ctrl *CommonAuthHandlers) ShowConnectedAccounts(c *gin.Context) {
+	userId := c.PostForm("user_id")
+	if userId == "" {
+		ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
+		return
+	}
+	uintUserId, err := strconv.Atoi(userId)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "user id conversion failed", nil)
+		return
+	}
+	accountsConnected, err := ctrl.Repo.FetchMyAccounts(uint(uintUserId))
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "can't fetch connected acccount details", nil)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"Accounts": accountsConnected.AccountName})
+}
+
+func (ctrl *CommonAuthHandlers) RemoveAccounts(c *gin.Context) {
+
 }

@@ -104,7 +104,7 @@ func (ctrl *OauthInstagramHandlers) OauthInstagramCallback(c *gin.Context) {
 	savedUserID := uint(userID)
 
 	// Save token in DB
-	savedUserID, savedToken, err := ctrl.Repo.SaveInstagramToken(savedUserID, accessToken)
+	err = ctrl.Repo.SaveInstagramToken(savedUserID, accessToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save access token"})
 		return
@@ -112,16 +112,13 @@ func (ctrl *OauthInstagramHandlers) OauthInstagramCallback(c *gin.Context) {
 
 	// Return response with saved user ID and token
 	c.JSON(http.StatusOK, gin.H{
-		"message":      "Access token saved successfully!",
-		"user_id":      savedUserID,
-		"access_token": savedToken,
+		"message": "Access token saved successfully!",
 	})
 
 }
 
 func (ctrl *OauthInstagramHandlers) FetchInstagramProfile(c *gin.Context) {
 	userIDStr := c.Query("user_id")
-	fmt.Println("userIDDDD", userIDStr)
 	if userIDStr == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user id is required"})
 		return
@@ -133,7 +130,7 @@ func (ctrl *OauthInstagramHandlers) FetchInstagramProfile(c *gin.Context) {
 		return
 	}
 
-	accessToken, err := ctrl.Repo.FetchAccessTokenFromDB(uint(userID))
+	accessToken, err := ctrl.Repo.FetchAccessTokenFromDB(uint(userID), "instagram")
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Access token not found"})
 		return
