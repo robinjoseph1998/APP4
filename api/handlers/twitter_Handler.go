@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -85,7 +86,8 @@ func (x *OauthTwitterHandlers) OAuthTwitterCallback(c *gin.Context) {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to parse token response", err)
 		return
 	}
-	err = x.Repo.SaveTwitterAccount(uint(contextUserID), "twitter", tokenResponse.AccessToken, tokenResponse.ExpiresIn)
+	strId := strconv.Itoa(int(contextUserID))
+	err = x.Repo.SaveTwitterAccount(uint(contextUserID), "twitter"+strId, tokenResponse.AccessToken, tokenResponse.ExpiresIn)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to save token", err)
 		return
@@ -103,7 +105,7 @@ func (x *OauthTwitterHandlers) PostTweet(c *gin.Context) {
 		ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err)
 		return
 	}
-	AccessToken, err := x.Repo.FetchAccessTokenFromDB(uint(contextUserID), "twitter")
+	AccessToken, err := x.Repo.FetchTwitterAccessTokenFromDB("twitter")
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "can't fetch access token", err)
 		return
@@ -175,4 +177,42 @@ func (x *OauthTwitterHandlers) PostTweetWithVideo(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Tweet with video posted successfully!"})
+}
+
+func (x *OauthTwitterHandlers) FetchTwitterProfile(c *gin.Context) {
+
+	twitterProfileFetchAPIEndpoint := "https://api.twitter.com/2/users/me"
+	strId := strconv.Itoa(int(contextUserID))
+	bearerToken, err := x.Repo.FetchTwitterAccessTokenFromDB("twitter" + strId)
+	if bearerToken == "" || err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to load the bearer token", err)
+		return
+	}
+	req, err := http.NewRequest("GET", twitterProfileFetchAPIEndpoint, nil)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to create request", err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to send http request", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to read the response", err)
+		return
+	}
+
+	var profileData map[string]interface{}
+	if err := json.Unmarshal(body, &profileData); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to parse JSON response", err)
+		return
+	}
+	c.JSON(http.StatusOK, profileData)
 }

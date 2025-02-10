@@ -79,7 +79,7 @@ func (ctrl *CommonAuthHandlers) AppLogin(c *gin.Context) {
 	}
 }
 
-func (ctrl *CommonAuthHandlers) ShowConnectedAccounts(c *gin.Context) {
+func (ctrl *CommonAuthHandlers) ShowConnectedTwitterAccounts(c *gin.Context) {
 	userId := c.PostForm("user_id")
 	if userId == "" {
 		ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
@@ -95,9 +95,20 @@ func (ctrl *CommonAuthHandlers) ShowConnectedAccounts(c *gin.Context) {
 		ErrorResponse(c, http.StatusInternalServerError, "can't fetch connected acccount details", nil)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"Accounts": accountsConnected.AccountName})
+	c.JSON(http.StatusOK, gin.H{"Twitter_Accounts": accountsConnected.UserName})
 }
 
 func (ctrl *CommonAuthHandlers) RemoveAccounts(c *gin.Context) {
+	accountName := c.PostForm("account_name")
+	if accountName == "" {
+		ErrorResponse(c, http.StatusBadRequest, "invalid account name", nil)
+		return
+	}
 
+	err := ctrl.Repo.DeleteAccountByName(accountName)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "account deletion failed", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"Account Name": accountName, "Status": "Deleted Successfully"})
 }

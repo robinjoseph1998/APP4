@@ -9,10 +9,18 @@ type User struct {
 	Password string `json:"password"`
 }
 
-type ConnectedAccounts struct {
+type TwitterAccounts struct {
 	AccountID   uint      `json:"account_id" gorm:"primaryKey"`
 	UserID      int       `json:"user_id"`
-	AccountName string    `json:"account_name"`
+	UserName    string    `json:"user_name"`
+	AccessToken string    `json:"access_token"`
+	ExpiresAt   time.Time `json:"expires_at"`
+}
+
+type InstagramAccounts struct {
+	AccountID   uint      `json:"account_id" gorm:"primaryKey"`
+	UserID      int       `json:"user_id"`
+	UserName    string    `json:"user_name"`
 	AccessToken string    `json:"access_token"`
 	ExpiresAt   time.Time `json:"expires_at"`
 }
