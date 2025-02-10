@@ -3,7 +3,6 @@ package api
 import (
 	"APP4/api/repository"
 	"APP4/database/models"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -33,22 +32,22 @@ func ErrorResponse(c *gin.Context, statusCode int, message string, err error) {
 func (ctrl *CommonAuthHandlers) AppSignup(c *gin.Context) {
 	var request models.User
 	if err := c.ShouldBindBodyWithJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		ErrorResponse(c, http.StatusBadRequest, "invalid request body", err)
 		return
 	}
-	var loginRequest models.LoginRequest
 
+	var loginRequest models.LoginRequest
 	loginRequest.Email = request.Email
 	loginRequest.Password = request.Password
 
 	user, err := ctrl.Repo.GetUserByEmail(loginRequest)
 	if err != nil || user != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user already exists"})
+		ErrorResponse(c, http.StatusBadRequest, "user already exists", err)
 		return
 	}
 
 	if err := ctrl.Repo.CreateUser(request); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		ErrorResponse(c, http.StatusInternalServerError, "can't create the user", err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "user created successully"})
@@ -58,13 +57,12 @@ func (ctrl *CommonAuthHandlers) AppLogin(c *gin.Context) {
 	var loginRequest models.LoginRequest
 
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		ErrorResponse(c, http.StatusBadRequest, "invalid request body", err)
 		return
 	}
-
 	user, err := ctrl.Repo.GetUserByEmail(loginRequest)
 	if err != nil && user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
+		ErrorResponse(c, http.StatusUnauthorized, "Invalid email or password", err)
 		return
 	}
 	if user != nil {
@@ -75,7 +73,6 @@ func (ctrl *CommonAuthHandlers) AppLogin(c *gin.Context) {
 		// 	return
 		// }
 		contextUserID = int(user.ID)
-		fmt.Println("Twitter User Id from Common Handler", contextUserID)
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Logged in successfully",
 		})

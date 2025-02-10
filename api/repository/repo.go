@@ -25,7 +25,7 @@ func (r *Repo) CreateUser(user models.User) error {
 
 func (r *Repo) SaveInstagramToken(userID uint, token string) error {
 	expiryTime := time.Now().Add(time.Duration(24) * time.Hour)
-	query := `INSERT INTO connected_accounts (user_id,access_token, expires_at) VALUES (?, ?, ?, ?)`
+	query := "INSERT INTO connected_accounts (user_id,access_token, expires_at) VALUES (?, ?, ?, ?)"
 	result := r.db.Exec(query, userID, token, expiryTime)
 	if result.Error != nil {
 		return fmt.Errorf("failed to save Twitter token: %v", result.Error)
@@ -44,7 +44,7 @@ func (r *Repo) FetchAccessTokenFromDB(userID uint, AccountName string) (string, 
 
 func (r *Repo) SaveTwitterAccount(userId uint, accountName string, accessToken string, expiresIn int) error {
 	expiryTime := time.Now().Add(time.Duration(expiresIn) * time.Second)
-	query := `INSERT INTO connected_accounts (user_id, account_name, access_token, expires_at) VALUES (?, ?, ?, ?)`
+	query := "INSERT INTO connected_accounts (user_id, account_name, access_token, expires_at) VALUES (?, ?, ?, ?)"
 	result := r.db.Exec(query, userId, accountName, accessToken, expiryTime)
 	if result.Error != nil {
 		return fmt.Errorf("failed to save Twitter token: %v", result.Error)
