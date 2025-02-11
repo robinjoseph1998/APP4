@@ -5,6 +5,7 @@ import (
 	igservices "APP4/api/services/instagram"
 	xservices "APP4/api/services/twitter"
 	"APP4/database/models"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -114,11 +115,13 @@ func (ctrl *CommonAuthHandlers) PostMediaToBoth(c *gin.Context) {
 		return
 	}
 	filePath, err := ctrl.XServices.PublicUrlVedioDownloader(videoURL)
+	fmt.Println("File Path", filePath)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "can't download the vedio", err)
 		return
 	}
 	mediaID, err := ctrl.XServices.InitializeMediaUpload(filePath)
+	fmt.Println("Media Id", mediaID)
 	if err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to initialize media upload", err)
 		return
@@ -141,6 +144,7 @@ func (ctrl *CommonAuthHandlers) PostMediaToBoth(c *gin.Context) {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to post tweet", err)
 		return
 	}
+
 	mediaID, err = ctrl.IgServices.UploadInstagramReel(igbusinessID, videoURL, caption, instagramAccessToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload video", "details": err.Error()})

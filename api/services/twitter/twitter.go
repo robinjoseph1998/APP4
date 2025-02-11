@@ -222,12 +222,13 @@ func (xservice *TwitterServices) CheckMediaProcessingStatus(mediaID string) (str
 }
 
 // POST TWEET - Attach media_id to tweet
-func (xservice *TwitterServices) PostTweet(status, mediaID string) error {
+func (xservice *TwitterServices) PostTweet(caption, mediaID string) error {
+	fmt.Println("Post TWEET REQUEST ENTRY", mediaID)
 	urlStr := "https://api.twitter.com/2/tweets"
 
 	client := getOAuth1Client()
 	payload := map[string]interface{}{
-		"text": status,
+		"text": caption,
 		"media": map[string]interface{}{
 			"media_ids": []string{mediaID},
 		},

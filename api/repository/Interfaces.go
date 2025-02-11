@@ -12,4 +12,5 @@ type RepoInterfaces interface {
 	FetchMyTwitterAccounts(userId int) (*models.TwitterAccounts, error)
 	DeleteTwitterAccount(userName string) error
 	SaveInstgramAccount(userId int, userName string, businessId string, accessToken string, expiresIn int) error
+	FetchMyInstagramAccounts(userId int) (*models.InstagramAccounts, error)
 }

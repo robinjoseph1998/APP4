@@ -84,7 +84,16 @@ func (r *Repo) GetUserByEmail(loginRequest models.LoginRequest) (*models.User, e
 
 func (r *Repo) FetchMyTwitterAccounts(userId int) (*models.TwitterAccounts, error) {
 	var connectedAccounts *models.TwitterAccounts
-	query := "SELECT * FROM connected_accounts WHERE user_id = $1"
+	query := "SELECT * FROM twitter_accounts WHERE user_id = $1"
+	if err := r.db.Raw(query, userId).Scan(&connectedAccounts).Error; err != nil {
+		return nil, err
+	}
+	return connectedAccounts, nil
+}
+
+func (r *Repo) FetchMyInstagramAccounts(userId int) (*models.InstagramAccounts, error) {
+	var connectedAccounts *models.InstagramAccounts
+	query := "SELECT * FROM instagram_accounts WHERE user_id = $1"
 	if err := r.db.Raw(query, userId).Scan(&connectedAccounts).Error; err != nil {
 		return nil, err
 	}

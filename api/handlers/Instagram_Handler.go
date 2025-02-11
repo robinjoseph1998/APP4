@@ -178,3 +178,19 @@ func (ig *OauthInstagramHandlers) PostInstagramReel(c *gin.Context) {
 		"post_id": postID,
 	})
 }
+
+func (ctrl *OauthInstagramHandlers) ShowConnectedInstagramAccounts(c *gin.Context) {
+	userId := c.PostForm("user_id")
+	if userId == "" {
+		ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
+		return
+	}
+	accounts, err := ctrl.Repo.FetchMyInstagramAccounts(contextUserID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "can't fetch connected acccount details", nil)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"Instagram_Accounts": accounts.UserName,
+	})
+}

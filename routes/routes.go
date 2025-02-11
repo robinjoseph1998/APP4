@@ -13,13 +13,14 @@ func SetUpRoutes(router *gin.Engine, ctrlInstagram *api.OauthInstagramHandlers, 
 	router.GET("/instagram/login", ctrlInstagram.OauthInstagramLogin)
 	router.GET("/instagram/callback", ctrlInstagram.OauthInstagramCallback)
 	router.GET("/get/instagram/profile", ctrlInstagram.FetchInstagramProfile)
-	router.POST("/instagram/post/media", ctrlInstagram.PostInstagramReel)
+	router.POST("/instagram/publish/video", ctrlInstagram.PostInstagramReel)
+	router.GET("/show/instagram/accounts", ctrlInstagram.ShowConnectedInstagramAccounts)
 
 	router.GET("/twitter/login", ctrlTwitter.OAuthTwitterLogin)
 	router.GET("/twitter/callback", ctrlTwitter.OAuthTwitterCallback)
 
 	router.POST("/twitter/post/tweet", ctrlTwitter.PostTweet)
-	router.POST("/twitter/publish/media", ctrlTwitter.PostTweetWithVideo)
+	router.POST("/twitter/publish/video", ctrlTwitter.PostTweetWithVideo)
 
 	router.GET("/get/twitter/profile", ctrlTwitter.FetchTwitterProfile)
 	router.POST("/remove/twitter/account", ctrlTwitter.RemoveTwitterAccount)

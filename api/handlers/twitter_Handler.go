@@ -149,6 +149,7 @@ func (x *OauthTwitterHandlers) PostTweetWithVideo(c *gin.Context) {
 		return
 	}
 	filePath := filepath.Join(saveDir, file.Filename)
+	fmt.Println("File Path: ", filePath)
 	if err := c.SaveUploadedFile(file, filePath); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to save video", err)
 		return

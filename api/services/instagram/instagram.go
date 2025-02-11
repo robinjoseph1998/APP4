@@ -154,7 +154,6 @@ func (ig *InstagramServices) PublishInstagramVideo(businessID, mediaID, accessTo
 	form.Set("creation_id", mediaID)
 	form.Set("access_token", accessToken)
 
-	fmt.Println("Api URL: ", apiURL)
 	resp, err := http.PostForm(apiURL, form)
 	if err != nil {
 		return "", fmt.Errorf("failed to publish video: %v", err)
