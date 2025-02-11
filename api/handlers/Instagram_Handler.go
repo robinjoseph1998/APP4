@@ -2,26 +2,31 @@ package api
 
 import (
 	"APP4/api/repository"
+	services "APP4/api/services/instagram"
+
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type OauthInstagramHandlers struct {
-	Repo repository.RepoInterfaces
+	Repo     repository.RepoInterfaces
+	Services services.InstagramServiceInterfaces
 }
 
-func NewOAuthInstagramHandlers(repo repository.RepoInterfaces) *OauthInstagramHandlers {
+func NewOAuthInstagramHandlers(repo repository.RepoInterfaces, services services.InstagramServiceInterfaces) *OauthInstagramHandlers {
 	return &OauthInstagramHandlers{
-		Repo: repo}
+		Repo:     repo,
+		Services: services}
 }
 
-func (ctrl *OauthInstagramHandlers) OauthInstagramLogin(c *gin.Context) {
+func (ig *OauthInstagramHandlers) OauthInstagramLogin(c *gin.Context) {
 	clientID := os.Getenv("INSTAGRAM_APP_ID")
 	redirectURI := os.Getenv("INSTAGRAM_REDIRECT_URI")
 
@@ -37,7 +42,7 @@ func (ctrl *OauthInstagramHandlers) OauthInstagramLogin(c *gin.Context) {
 	c.Redirect(http.StatusFound, authURL)
 }
 
-func (ctrl *OauthInstagramHandlers) OauthInstagramCallback(c *gin.Context) {
+func (ig *OauthInstagramHandlers) OauthInstagramCallback(c *gin.Context) {
 	code := c.Query("code")
 	if code == "" {
 		ErrorResponse(c, http.StatusBadRequest, "Authorization code is missing", nil)
@@ -60,7 +65,6 @@ func (ctrl *OauthInstagramHandlers) OauthInstagramCallback(c *gin.Context) {
 	defer resp.Body.Close()
 	var AccessTokenResponse struct {
 		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
 	}
 
 	body, _ := io.ReadAll(resp.Body)
@@ -68,31 +72,43 @@ func (ctrl *OauthInstagramHandlers) OauthInstagramCallback(c *gin.Context) {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to parse token response", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"access_token": AccessTokenResponse.AccessToken})
+
+	businessId, err := ig.Services.GetIGBusinessID(AccessTokenResponse.AccessToken)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "failed to get instagram business id", err)
+	}
+
+	strId := strconv.Itoa(contextUserID)
+	err = ig.Repo.SaveInstgramAccount(contextUserID, "instagram"+strId, businessId, AccessTokenResponse.AccessToken, 5)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to save token", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Instagram account connected to the app successfully"})
 }
 
-func (ctrl *OauthInstagramHandlers) FetchInstagramProfile(c *gin.Context) {
-
-	access_token := "EAA07LhpjPJIBOZCdOTte4OC33N4A9CSb21cVZAUocxBAZCXwz8mHVWzql1NVcmHLTMGFzmrUhj2v5zFrSShYPBZASjYliaZCWQWmjVm5ZByQs0vWvFKqZB9OLlVynhxyISRP93QSUag8TAdH31sciAwNTj1AZCEjXm2YlmfTXsVva91sEefpLKZASZCEjbvsbhUhJKZAD6xCg0gRjKzidEWZA47EZASz5dbyQaaPv1YytGbw3JVE3CbN9xDAXXFvwel7HGfI07wZDZD"
-	if access_token == "" {
-		ErrorResponse(c, http.StatusInternalServerError, "can't fetch access token in .env", nil)
+func (ig *OauthInstagramHandlers) FetchInstagramProfile(c *gin.Context) {
+	userName := c.PostForm("user_name")
+	if userName == "" {
+		ErrorResponse(c, http.StatusBadRequest, "invalid Request", nil)
 		return
 	}
-	business_account_id := "17841472666905757"
-	igProfileEndpoint := fmt.Sprintf("https://graph.facebook.com/v22.0/%s?fields=name,username&access_token=%s", business_account_id, access_token)
-	req, err := http.NewRequest("GET", igProfileEndpoint, nil)
+	accessToken, err := ig.Repo.FetchInstagramAccessTokenFromDB(userName)
+	if err != nil || accessToken == "" {
+		ErrorResponse(c, http.StatusInternalServerError, "can't fetch access token", err)
+		return
+	}
+	businessId, err := ig.Services.GetIGBusinessID(accessToken)
 	if err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "Failed to create request", err)
-		return
+		ErrorResponse(c, http.StatusInternalServerError, "failed to get instagram business id", err)
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "Failed to send http request", err)
+	iGprofileApi := fmt.Sprintf("https://graph.facebook.com/v19.0/%s?fields=id,username,profile_picture_url&access_token=%s", businessId, accessToken)
+	resp, err := http.Get(iGprofileApi)
+	if err != nil || resp.StatusCode != http.StatusOK {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch profile", err)
 		return
 	}
-
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
@@ -100,12 +116,65 @@ func (ctrl *OauthInstagramHandlers) FetchInstagramProfile(c *gin.Context) {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to read the response", err)
 		return
 	}
-	fmt.Println("Raw Response:", string(body))
+
 	var profileData map[string]interface{}
 	if err := json.Unmarshal(body, &profileData); err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to parse JSON response", err)
 		return
 	}
 	c.JSON(http.StatusOK, profileData)
+}
 
+func (ig *OauthInstagramHandlers) PostInstagramReel(c *gin.Context) {
+	userName := c.PostForm("user_name")
+	if userName == "" {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request: user_name is required", nil)
+		return
+	}
+
+	postCaption := c.PostForm("caption")
+	if postCaption == "" {
+		ErrorResponse(c, http.StatusBadRequest, "Post description is required", nil)
+		return
+	}
+
+	videoURL := c.PostForm("video_url")
+	if videoURL == "" {
+		ErrorResponse(c, http.StatusBadRequest, "Failed to retrieve media file", nil)
+		return
+	}
+
+	accessToken, err := ig.Repo.FetchInstagramAccessTokenFromDB(userName)
+	if err != nil || accessToken == "" {
+		ErrorResponse(c, http.StatusInternalServerError, "Can't fetch access token", err)
+		return
+	}
+
+	businessID, err := ig.Services.GetIGBusinessID(accessToken)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to get Instagram Business ID", err)
+		return
+	}
+	mediaID, err := ig.Services.UploadInstagramReel(businessID, videoURL, postCaption, accessToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload video", "details": err.Error()})
+		return
+	}
+
+	err = ig.Services.CheckVideoProcessingStatus(mediaID, accessToken)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Video processing failed", err)
+		return
+	}
+
+	postID, err := ig.Services.PublishInstagramVideo(businessID, mediaID, accessToken)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to publish media", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Media posted successfully!",
+		"post_id": postID,
+	})
 }

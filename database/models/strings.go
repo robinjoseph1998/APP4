@@ -17,8 +17,7 @@ type ProfileResponse struct {
 
 type TokenResponse struct {
 	AccessToken string `json:"access_token"`
-	AccountName string `json:"account_name"`
-	TokenType   string `json:"token_type"`
+	UserName    string `json:"user_name"`
 	ExpiresIn   int    `json:"expires_in"`
 }
 

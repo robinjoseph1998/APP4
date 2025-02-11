@@ -20,6 +20,7 @@ type TwitterAccounts struct {
 type InstagramAccounts struct {
 	AccountID   uint      `json:"account_id" gorm:"primaryKey"`
 	UserID      int       `json:"user_id"`
+	BusinessID  string    `json:"business_id"`
 	UserName    string    `json:"user_name"`
 	AccessToken string    `json:"access_token"`
 	ExpiresAt   time.Time `json:"expires_at"`

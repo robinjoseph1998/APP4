@@ -6,4 +6,5 @@ type TwitterServiceInterfaces interface {
 	FinalizeMediaUpload(mediaID string) error
 	CheckMediaProcessingStatus(mediaID string) (string, int, error)
 	PostTweet(status, mediaID string) error
+	PublicUrlVedioDownloader(videoURL string) (string, error)
 }

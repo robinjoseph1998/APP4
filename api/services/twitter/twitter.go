@@ -79,11 +79,6 @@ func (xservice *TwitterServices) InitializeMediaUpload(filePath string) (string,
 	fmt.Println("INIT Response Status:", resp.Status)
 	fmt.Println("INIT Response Body:", string(body))
 
-	// Check if request failed
-	// if resp.StatusCode != http.StatusOK {
-	// 	return "", fmt.Errorf("twitter INIT API error: %s - %s", resp.Status, string(body))
-	// }
-
 	var result map[string]interface{}
 	if err := json.Unmarshal(body, &result); err != nil {
 		return "", fmt.Errorf("failed to parse response: %v", err)
@@ -95,7 +90,7 @@ func (xservice *TwitterServices) InitializeMediaUpload(filePath string) (string,
 	return mediaID, nil
 }
 
-// 2️⃣ APPEND - Upload video in chunks
+// APPEND - Upload video in chunks
 func (xservice *TwitterServices) AppendMediaUpload(mediaID, filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -114,10 +109,9 @@ func (xservice *TwitterServices) AppendMediaUpload(mediaID, filePath string) err
 			return fmt.Errorf("failed to read file: %v", err)
 		}
 		if bytesRead == 0 {
-			break // Done reading the file
+			break
 		}
 
-		// Twitter API URL for APPEND
 		urlStr := "https://upload.twitter.com/1.1/media/upload.json"
 
 		body := &bytes.Buffer{}
@@ -257,4 +251,45 @@ func (xservice *TwitterServices) PostTweet(status, mediaID string) error {
 		return fmt.Errorf("twitter Tweet API error: %s - %s", resp.Status, string(body))
 	}
 	return nil
+}
+
+func (xservice *TwitterServices) PublicUrlVedioDownloader(videoURL string) (string, error) {
+	// Step 1: Download the video
+	filePath, err := downloadVideo(videoURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to download video: %v", err)
+	}
+
+	// Step 2: Proceed with Twitter's media upload
+	return filePath, nil
+}
+
+func downloadVideo(videoURL string) (string, error) {
+	saveDir := "uploads/videos"
+	if err := os.MkdirAll(saveDir, os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create directory: %v", err)
+	}
+
+	fileName := fmt.Sprintf("video_%d.mp4", time.Now().Unix())
+	filePath := fmt.Sprintf("%s/%s", saveDir, fileName)
+
+	// Download the video
+	resp, err := http.Get(videoURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to download video: %v", err)
+	}
+	defer resp.Body.Close()
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create file: %v", err)
+	}
+	defer file.Close()
+
+	// Write video data to file
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to save video: %v", err)
+	}
+	return filePath, nil
 }

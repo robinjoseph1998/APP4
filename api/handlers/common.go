@@ -2,26 +2,32 @@ package api
 
 import (
 	"APP4/api/repository"
+	igservices "APP4/api/services/instagram"
+	xservices "APP4/api/services/twitter"
 	"APP4/database/models"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 type CommonAuthHandlers struct {
-	Repo repository.RepoInterfaces
+	Repo       repository.RepoInterfaces
+	XServices  xservices.TwitterServiceInterfaces
+	IgServices igservices.InstagramServiceInterfaces
 }
 
-func NewCommonAuthHandlers(repo repository.RepoInterfaces) *CommonAuthHandlers {
+func NewCommonAuthHandlers(repo repository.RepoInterfaces, xservice xservices.TwitterServiceInterfaces, igservices igservices.InstagramServiceInterfaces) *CommonAuthHandlers {
 	return &CommonAuthHandlers{
-		Repo: repo}
+		Repo:       repo,
+		XServices:  xservice,
+		IgServices: igservices}
 }
 
 func ErrorResponse(c *gin.Context, statusCode int, message string, err error) {
 	errorResponse := gin.H{
-		"error":   true,
-		"message": message,
+		"error":       true,
+		"status_code": statusCode,
+		"message":     message,
 	}
 	if err != nil {
 		errorResponse["details"] = err.Error()
@@ -79,36 +85,83 @@ func (ctrl *CommonAuthHandlers) AppLogin(c *gin.Context) {
 	}
 }
 
-func (ctrl *CommonAuthHandlers) ShowConnectedTwitterAccounts(c *gin.Context) {
-	userId := c.PostForm("user_id")
-	if userId == "" {
-		ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
-		return
-	}
-	uintUserId, err := strconv.Atoi(userId)
-	if err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "user id conversion failed", nil)
-		return
-	}
-	accountsConnected, err := ctrl.Repo.FetchMyAccounts(uint(uintUserId))
-	if err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "can't fetch connected acccount details", nil)
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"Twitter_Accounts": accountsConnected.UserName})
-}
+func (ctrl *CommonAuthHandlers) PostMediaToBoth(c *gin.Context) {
 
-func (ctrl *CommonAuthHandlers) RemoveAccounts(c *gin.Context) {
-	accountName := c.PostForm("account_name")
-	if accountName == "" {
-		ErrorResponse(c, http.StatusBadRequest, "invalid account name", nil)
+	igUserName := c.PostForm("ig_username")
+	twtrUserName := c.PostForm("twtr_username")
+	videoURL := c.PostForm("video_url")
+	caption := c.PostForm("caption")
+
+	if igUserName == "" || twtrUserName == "" || videoURL == "" || caption == "" {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request: request field empty", nil)
 		return
 	}
 
-	err := ctrl.Repo.DeleteAccountByName(accountName)
+	// twitterAcccesToken, err := ctrl.Repo.FetchTwitterAccessTokenFromDB(twtrUserName)
+	// if err != nil {
+	// 	ErrorResponse(c, http.StatusInternalServerError, "can't fetch twitter access token", err)
+	// 	return
+	// }
+	instagramAccessToken, err := ctrl.Repo.FetchInstagramAccessTokenFromDB(igUserName)
 	if err != nil {
-		ErrorResponse(c, http.StatusInternalServerError, "account deletion failed", err)
+		ErrorResponse(c, http.StatusInternalServerError, "can't fetch instagram access token", err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"Account Name": accountName, "Status": "Deleted Successfully"})
+
+	igbusinessID, err := ctrl.IgServices.GetIGBusinessID(instagramAccessToken)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to get Instagram Business ID", err)
+		return
+	}
+	filePath, err := ctrl.XServices.PublicUrlVedioDownloader(videoURL)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "can't download the vedio", err)
+		return
+	}
+	mediaID, err := ctrl.XServices.InitializeMediaUpload(filePath)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to initialize media upload", err)
+		return
+	}
+
+	err = ctrl.XServices.AppendMediaUpload(mediaID, filePath)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to upload media chunks", err)
+		return
+	}
+
+	err = ctrl.XServices.FinalizeMediaUpload(mediaID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to finalize media upload", err)
+		return
+	}
+
+	err = ctrl.XServices.PostTweet(caption, mediaID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to post tweet", err)
+		return
+	}
+	mediaID, err = ctrl.IgServices.UploadInstagramReel(igbusinessID, videoURL, caption, instagramAccessToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload video", "details": err.Error()})
+		return
+	}
+
+	err = ctrl.IgServices.CheckVideoProcessingStatus(mediaID, instagramAccessToken)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Video processing failed", err)
+		return
+	}
+
+	postID, err := ctrl.IgServices.PublishInstagramVideo(igbusinessID, mediaID, instagramAccessToken)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to publish media", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Media posted to Twitter and Instagram successfully!",
+		"post_id": postID,
+	})
+
 }

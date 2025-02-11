@@ -93,7 +93,7 @@ func (x *OauthTwitterHandlers) OAuthTwitterCallback(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
+	c.JSON(http.StatusOK, gin.H{"message": "Twitter account connected to the app successfully"})
 }
 
 func (x *OauthTwitterHandlers) PostTweet(c *gin.Context) {
@@ -182,7 +182,7 @@ func (x *OauthTwitterHandlers) PostTweetWithVideo(c *gin.Context) {
 func (x *OauthTwitterHandlers) FetchTwitterProfile(c *gin.Context) {
 
 	twitterProfileFetchAPIEndpoint := "https://api.twitter.com/2/users/me"
-	strId := strconv.Itoa(int(contextUserID))
+	strId := strconv.Itoa(contextUserID)
 	bearerToken, err := x.Repo.FetchTwitterAccessTokenFromDB("twitter" + strId)
 	if bearerToken == "" || err != nil {
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to load the bearer token", err)
@@ -215,4 +215,39 @@ func (x *OauthTwitterHandlers) FetchTwitterProfile(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, profileData)
+}
+
+func (ctrl *OauthTwitterHandlers) RemoveTwitterAccount(c *gin.Context) {
+	userName := c.PostForm("user_name")
+	if userName == "" {
+		ErrorResponse(c, http.StatusBadRequest, "invalid account name", nil)
+		return
+	}
+	err := ctrl.Repo.DeleteTwitterAccount(userName)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "account deletion failed", err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"Account":   "Twitter Account",
+		"User_Name": userName,
+		"Status":    "Deleted Successfully",
+	})
+
+}
+
+func (ctrl *OauthTwitterHandlers) ShowConnectedTwitterAccounts(c *gin.Context) {
+	userId := c.PostForm("user_id")
+	if userId == "" {
+		ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
+		return
+	}
+	accounts, err := ctrl.Repo.FetchMyTwitterAccounts(contextUserID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "can't fetch connected acccount details", nil)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"Twitter_Accounts": accounts.UserName,
+	})
 }
